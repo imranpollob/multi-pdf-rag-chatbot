@@ -1,0 +1,13 @@
+streamlit==1.50.0
+langchain==0.3.27
+langchain-community==0.3.31
+langchain-text-splitters==0.3.11
+langchain-openai==0.3.11
+openai>=1.68.2,<2.0.0
+pypdf==6.1.2
+chromadb==1.2.0
+sentence-transformers==5.1.1
+torch==2.9.0
+transformers==4.57.1
+python-dotenv==1.1.1
+faiss-cpu==1.12.0
