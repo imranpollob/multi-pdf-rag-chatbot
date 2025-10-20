@@ -229,7 +229,15 @@ def handle_user_question(user_question):
 
 def handle_user_question_with_streaming(user_question):
     """Handle user question and generate response with streaming"""
+    # Add user message to chat history
+    st.session_state.chat_history.append({"role": "user", "content": user_question})
+    
     if st.session_state.vectorstore is not None:
+        # Add a temporary "processing" message
+        with st.chat_message("assistant"):
+            processing_placeholder = st.empty()
+            processing_placeholder.write("🤔 Processing your request...")
+        
         # Get the conversation chain
         conversation_chain = get_conversation_chain(st.session_state.vectorstore)
         
@@ -259,7 +267,8 @@ def handle_user_question_with_streaming(user_question):
             for source_str in unique_sources:
                 result += f"{source_str}\n"
         
-        # Display response in chat
+        # Clear the processing message and display the actual response
+        processing_placeholder.empty()
         with st.chat_message("assistant"):
             st.write(result)
             
@@ -275,11 +284,17 @@ def handle_user_question_with_streaming(user_question):
                     for source_str in unique_sources:
                         st.write(source_str)
         
-        # Add to chat history
-        st.session_state.chat_history.append({"role": "user", "content": user_question})
+        # Add the assistant's response to chat history
         st.session_state.chat_history.append({"role": "assistant", "content": result})
     else:
-        st.warning("Please upload and process PDFs first.")
+        # Display warning message in chat interface and add to chat history
+        warning_message = "Please upload PDFs to start working."
+        
+        with st.chat_message("assistant"):
+            st.write(warning_message)
+        
+        # Add the assistant's warning response to chat history
+        st.session_state.chat_history.append({"role": "assistant", "content": warning_message})
 
 def get_document_summaries():
     """Generate summaries for each uploaded document"""
