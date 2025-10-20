@@ -65,12 +65,14 @@ def split_text_with_metadata(text_chunks_with_metadata):
         # Split the text
         sub_texts = text_splitter.split_text(text)
         
-        # Create metadata for each sub-chunk
+        # Create metadata for each sub-chunk, filtering out empty chunks
         for sub_text in sub_texts:
-            all_chunks.append(sub_text)
-            # Make a copy of the original metadata to avoid reference issues
-            chunk_metadata = original_metadata.copy()
-            all_metadatas.append(chunk_metadata)
+            # Only add non-empty chunks
+            if sub_text.strip():  # Check if the chunk is not empty or just whitespace
+                all_chunks.append(sub_text)
+                # Make a copy of the original metadata to avoid reference issues
+                chunk_metadata = original_metadata.copy()
+                all_metadatas.append(chunk_metadata)
     
     return all_chunks, all_metadatas
 
@@ -82,6 +84,14 @@ def get_vectorstore(text_chunks_with_metadata):
     
     # Split text while preserving metadata
     text_chunks, metadatas = split_text_with_metadata(text_chunks_with_metadata)
+    
+    # Handle case where no valid chunks exist
+    if not text_chunks:
+        # Create an empty vectorstore by using Chroma with no initial documents
+        vectorstore = Chroma(
+            embedding_function=embeddings
+        )
+        return vectorstore
     
     vectorstore = Chroma.from_texts(
         texts=text_chunks,
@@ -108,15 +118,17 @@ def process_uploaded_pdfs(uploaded_files):
         for page_num, page in enumerate(pdf_reader.pages):
             text = page.extract_text()
             
-            # Create chunk with metadata
-            chunk_with_metadata = {
-                'text': text,
-                'metadata': {
-                    'source': filename,
-                    'page': page_num + 1  # Page numbers start from 1
+            # Only add chunk if text is not empty
+            if text.strip():
+                # Create chunk with metadata
+                chunk_with_metadata = {
+                    'text': text,
+                    'metadata': {
+                        'source': filename,
+                        'page': page_num + 1  # Page numbers start from 1
+                    }
                 }
-            }
-            text_chunks_with_metadata.append(chunk_with_metadata)
+                text_chunks_with_metadata.append(chunk_with_metadata)
         
         # Clean up temp file
         os.unlink(temp_path)
@@ -308,28 +320,7 @@ def get_document_summaries():
         return summaries
     return {}
 
-def get_query_suggestions(user_input):
-    """Generate query suggestions based on user input and document content"""
-    if st.session_state.vectorstore is not None and user_input.strip():
-        # Get relevant documents to understand context
-        docs = st.session_state.vectorstore.similarity_search(user_input, k=2)
-        
-        llm = ChatOpenAI(model_name="gpt-3.5-turbo", temperature=0.7)
-        
-        # Create prompt for generating suggestions
-        suggestions_prompt = f"""
-        Based on the following query and document context, generate 3-5 related follow-up questions 
-        or query suggestions that would help explore the topic further:
-        
-        Original query: {user_input}
-        
-        Document context: {docs[0].page_content[:1000] if docs else 'No context available'}
-        
-        Please provide the suggestions as a numbered list:"""
-        
-        suggestions_text = llm.predict(suggestions_prompt)
-        return suggestions_text
-    return ""
+
 
 def main():
     st.set_page_config(page_title="Multi-PDF RAG Chatbot", page_icon=":books:")
@@ -394,13 +385,6 @@ def main():
     user_question = st.chat_input("Ask a question about your documents...")
     if user_question:
         handle_user_question_with_streaming(user_question)
-        
-        # Generate query suggestions after the response
-        with st.spinner("Generating query suggestions..."):
-            suggestions = get_query_suggestions(user_question)
-            if suggestions:
-                with st.expander("💡 Query Suggestions", expanded=True):
-                    st.write(suggestions)
         
         # Rerun to update the chat display
         st.rerun()

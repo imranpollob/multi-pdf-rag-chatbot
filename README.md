@@ -11,7 +11,6 @@ A Retrieval-Augmented Generation (RAG) system that allows users to chat with mul
 - ✅ Source citations for answers
 - ✅ Streaming chat interface with real-time responses
 - ✅ Document summarization feature
-- ✅ Query refinement suggestions
 - ✅ Page-level source attribution
 
 ## Tech Stack
