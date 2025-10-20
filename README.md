@@ -2,6 +2,8 @@
 
 A Retrieval-Augmented Generation (RAG) system that allows users to chat with multiple PDF documents simultaneously.
 
+![Screenshot](screenshot.png)
+
 ## Features
 
 - ✅ Upload and process multiple PDF documents
